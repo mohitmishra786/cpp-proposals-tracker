@@ -1,0 +1,90 @@
+name: Daily Crawler
+
+on:
+  schedule:
+    - cron: '0 2 * * *'    # runs at 2am UTC every day
+  workflow_dispatch:         # allows manual trigger from GitHub UI
+    inputs:
+      mode:
+        description: 'Crawl mode'
+        required: true
+        default: 'incremental'
+        type: choice
+        options:
+          - incremental
+          - scrape
+      from_period:
+        description: 'Start from period (YYYY/MM) — only used with scrape mode'
+        required: false
+        default: ''
+      summarize:
+        description: 'Generate AI thread summaries after ingestion'
+        required: false
+        default: false
+        type: boolean
+
+jobs:
+  crawl:
+    runs-on: ubuntu-latest
+    timeout-minutes: 120
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+          cache: 'pip'
+          cache-dependency-path: crawler/requirements.txt
+
+      - name: Install Python dependencies
+        run: pip install -r crawler/requirements.txt
+
+      - name: Create output directory
+        run: mkdir -p crawler/output
+
+      - name: Run crawler (scheduled — incremental)
+        if: github.event_name == 'schedule'
+        run: python crawler/main.py incremental
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Run crawler (manual dispatch)
+        if: github.event_name == 'workflow_dispatch'
+        run: |
+          if [ "${{ inputs.mode }}" = "scrape" ] && [ -n "${{ inputs.from_period }}" ]; then
+            python crawler/main.py scrape --from "${{ inputs.from_period }}"
+          elif [ "${{ inputs.mode }}" = "scrape" ]; then
+            python crawler/main.py scrape
+          else
+            python crawler/main.py incremental
+          fi
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Run ingestion pipeline
+        run: |
+          SUMMARIZE_FLAG=""
+          if [ "${{ inputs.summarize }}" = "true" ]; then
+            SUMMARIZE_FLAG="--summarize"
+          fi
+          python crawler/ingest.py $SUMMARIZE_FLAG
+        env:
+          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
+          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
+          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
+          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+
+      - name: Upload logs on failure
+        if: failure()
+        uses: actions/upload-artifact@v4
+        with:
+          name: crawler-logs
+          path: crawler/*.log
+          retention-days: 7
