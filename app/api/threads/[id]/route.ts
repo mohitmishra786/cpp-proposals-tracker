@@ -6,8 +6,9 @@ import { buildThreadTree } from "@/lib/utils";
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { id: string } }
+  props: { params: Promise<{ id: string }> }
 ) {
+  const params = await props.params;
   try {
     const rootMessageId = decodeURIComponent(params.id);
     const supabase = getSupabaseServiceClient();

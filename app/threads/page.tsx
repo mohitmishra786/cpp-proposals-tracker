@@ -53,14 +53,13 @@ export default function ThreadsPage() {
       setInitialLoading(false);
       loadingRef.current = false;
     }
-  // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort]);
 
   useEffect(() => {
     setPage(1);
     setInitialLoading(true);
     fetchThreads(1, true);
-  // eslint-disable-next-line react-hooks/exhaustive-deps
+    // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [sort]);
 
   useEffect(() => {

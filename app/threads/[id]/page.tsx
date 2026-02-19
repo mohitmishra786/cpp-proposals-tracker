@@ -7,7 +7,7 @@ import ThreadTree from "@/components/ThreadTree";
 import { Email, Thread } from "@/lib/types";
 
 interface PageProps {
-  params: { id: string };
+  params: Promise<{ id: string }>;
 }
 
 async function getThreadData(rootMessageId: string) {
@@ -33,12 +33,13 @@ async function getThreadData(rootMessageId: string) {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const id = decodeURIComponent(params.id);
+  const { id } = await params;
+  const decodedId = decodeURIComponent(id);
   const supabase = getSupabaseServiceClient();
   const { data: dataRaw } = await supabase
     .from("threads")
     .select("subject")
-    .eq("root_message_id", id)
+    .eq("root_message_id", decodedId)
     .single();
 
   const data = dataRaw as { subject: string } | null;
@@ -50,7 +51,8 @@ export async function generateMetadata({ params }: PageProps): Promise<Metadata>
 }
 
 export default async function ThreadPage({ params }: PageProps) {
-  const rootMessageId = decodeURIComponent(params.id);
+  const { id } = await params;
+  const rootMessageId = decodeURIComponent(id);
   const { thread, emails } = await getThreadData(rootMessageId);
 
   if (!thread && emails.length === 0) {

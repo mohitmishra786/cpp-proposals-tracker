@@ -3,9 +3,7 @@ const nextConfig = {
   images: {
     unoptimized: true,
   },
-  experimental: {
-    serverComponentsExternalPackages: ["@anthropic-ai/sdk", "openai"],
-  },
+  serverExternalPackages: ["@anthropic-ai/sdk", "openai"],
 };
 
 export default nextConfig;

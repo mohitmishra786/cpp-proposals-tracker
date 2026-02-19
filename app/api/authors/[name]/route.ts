@@ -16,8 +16,9 @@ interface EmailPartial {
 
 export async function GET(
   _req: NextRequest,
-  { params }: { params: { name: string } }
+  props: { params: Promise<{ name: string }> }
 ) {
+  const params = await props.params;
   try {
     const name = decodeURIComponent(params.name);
     const supabase = getSupabaseServiceClient();

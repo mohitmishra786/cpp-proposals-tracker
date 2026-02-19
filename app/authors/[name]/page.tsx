@@ -7,7 +7,7 @@ import { cn, formatDateShort, formatDateRange, getAuthorColor, getInitials, trun
 import { Author, Thread } from "@/lib/types";
 
 interface PageProps {
-  params: { name: string };
+  params: Promise<{ name: string }>;
 }
 
 interface EmailRow {
@@ -22,21 +22,23 @@ interface EmailRow {
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
-  const name = decodeURIComponent(params.name);
+  const { name } = await params;
+  const decodedName = decodeURIComponent(name);
   return {
-    title: name,
-    description: `${name}'s contributions to the C++ std-proposals mailing list`,
+    title: decodedName,
+    description: `${decodedName}'s contributions to the C++ std-proposals mailing list`,
   };
 }
 
 export default async function AuthorPage({ params }: PageProps) {
-  const name = decodeURIComponent(params.name);
+  const { name } = await params;
+  const decodedName = decodeURIComponent(name);
   const supabase = getSupabaseServiceClient();
 
   const { data: authorRaw } = await supabase
     .from("authors")
     .select("*")
-    .eq("name", name)
+    .eq("name", decodedName)
     .single();
 
   const author = authorRaw as Author | null;
@@ -45,7 +47,7 @@ export default async function AuthorPage({ params }: PageProps) {
   const { data: emailsRaw } = await supabase
     .from("emails")
     .select("id, message_id, subject, date, body_new_content, source_url, thread_root_id, thread_depth")
-    .eq("author_name", name)
+    .eq("author_name", decodedName)
     .order("date", { ascending: false })
     .limit(50);
   const emails = (emailsRaw ?? []) as EmailRow[];
