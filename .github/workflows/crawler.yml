@@ -1,9 +1,7 @@
-name: Daily Crawler
+name: Crawler
 
 on:
-  schedule:
-    - cron: '0 2 * * *'    # runs at 2am UTC every day
-  workflow_dispatch:         # allows manual trigger from GitHub UI
+  workflow_dispatch:
     inputs:
       mode:
         description: 'Crawl mode'
@@ -43,17 +41,7 @@ jobs:
       - name: Create output directory
         run: mkdir -p crawler/output
 
-      - name: Run crawler (scheduled — incremental)
-        if: github.event_name == 'schedule'
-        run: python crawler/main.py incremental
-        env:
-          SUPABASE_URL: ${{ secrets.SUPABASE_URL }}
-          SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
-          OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
-          ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
-
-      - name: Run crawler (manual dispatch)
-        if: github.event_name == 'workflow_dispatch'
+      - name: Run crawler
         run: |
           if [ "${{ inputs.mode }}" = "scrape" ] && [ -n "${{ inputs.from_period }}" ]; then
             python crawler/main.py scrape --from "${{ inputs.from_period }}"
@@ -67,6 +55,8 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          EMBEDDING_PROVIDER: ${{ secrets.EMBEDDING_PROVIDER }}
 
       - name: Run ingestion pipeline
         run: |
@@ -80,6 +70,8 @@ jobs:
           SUPABASE_SERVICE_KEY: ${{ secrets.SUPABASE_SERVICE_KEY }}
           OPENAI_API_KEY: ${{ secrets.OPENAI_API_KEY }}
           ANTHROPIC_API_KEY: ${{ secrets.ANTHROPIC_API_KEY }}
+          GROQ_API_KEY: ${{ secrets.GROQ_API_KEY }}
+          EMBEDDING_PROVIDER: ${{ secrets.EMBEDDING_PROVIDER }}
 
       - name: Upload logs on failure
         if: failure()
