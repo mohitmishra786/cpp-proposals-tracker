@@ -83,7 +83,7 @@ export default function AskInterface() {
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6 sm:py-8">
+    <div className="w-full px-4 py-6 sm:py-8">
       <div className="terminal-panel mb-6">
         <div className="terminal-header">
           <div className="flex items-center gap-1.5">
@@ -93,7 +93,7 @@ export default function AskInterface() {
           </div>
           <span className="terminal-title ml-2">ask_ai.exe</span>
         </div>
-        
+
         <div className="p-4 sm:p-6">
           <div className="flex items-center gap-3 mb-4">
             <div className="w-10 h-10 rounded border border-phosphor-green/30 bg-phosphor-green/10 flex items-center justify-center">

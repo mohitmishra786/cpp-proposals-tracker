@@ -1,9 +1,9 @@
 import { Metadata } from "next";
 import { notFound } from "next/navigation";
 import Link from "next/link";
-import { Mail, Calendar, MessageSquare, ExternalLink } from "lucide-react";
+import { Mail, Calendar, MessageSquare, ExternalLink, ArrowLeft } from "lucide-react";
 import { getSupabaseServiceClient } from "@/lib/supabase";
-import { cn, formatDateShort, formatDateRange, getAuthorColor, getInitials, truncate } from "@/lib/utils";
+import { cn, formatDateShort, formatDateRange, getInitials, truncate } from "@/lib/utils";
 import { Author, Thread } from "@/lib/types";
 
 interface PageProps {
@@ -19,6 +19,18 @@ interface EmailRow {
   source_url: string | null;
   thread_root_id: string | null;
   thread_depth: number;
+}
+
+// Generate a consistent deterministic color class from author name
+function getAvatarColor(name: string): string {
+  const colors = [
+    "bg-phosphor-amber/20 border-phosphor-amber/40 text-phosphor-amber",
+    "bg-phosphor-green/20 border-phosphor-green/40 text-phosphor-green",
+    "bg-phosphor-cyan/20 border-phosphor-cyan/40 text-phosphor-cyan",
+  ];
+  let hash = 0;
+  for (let i = 0; i < name.length; i++) hash = name.charCodeAt(i) + ((hash << 5) - hash);
+  return colors[Math.abs(hash) % colors.length];
 }
 
 export async function generateMetadata({ params }: PageProps): Promise<Metadata> {
@@ -66,36 +78,69 @@ export default async function AuthorPage({ params }: PageProps) {
     threads = (data ?? []) as Thread[];
   }
 
-  const colorClass = getAuthorColor(author.name);
   const initials = getInitials(author.name);
+  const avatarColor = getAvatarColor(author.name);
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
-      {/* Author header */}
-      <div className="flex items-start gap-4 mb-8">
-        <div
-          className={cn(
-            "w-16 h-16 rounded-full flex items-center justify-center",
-            "text-white font-bold text-xl flex-shrink-0",
-            colorClass
-          )}
-        >
-          {initials}
+    <div className="w-full px-4 py-6">
+      {/* Back */}
+      <Link
+        href="/authors"
+        className={cn(
+          "inline-flex items-center gap-1.5 text-2xs text-terminal-muted hover:text-phosphor-amber",
+          "transition-colors mb-6"
+        )}
+      >
+        <ArrowLeft className="h-3 w-3" />
+        All authors
+      </Link>
+
+      {/* Author header panel */}
+      <div className="terminal-panel mb-6">
+        <div className="terminal-header">
+          <div className="flex items-center gap-1.5">
+            <div className="terminal-dot terminal-dot-red" />
+            <div className="terminal-dot terminal-dot-yellow" />
+            <div className="terminal-dot terminal-dot-green" />
+          </div>
+          <span className="terminal-title ml-2">author.exe</span>
         </div>
-        <div>
-          <h1 className="text-2xl font-bold text-surface-900 dark:text-surface-100 mb-1">
-            {author.name}
-          </h1>
-          <div className="flex flex-wrap gap-4 text-sm text-surface-500 dark:text-surface-400">
-            <span className="flex items-center gap-1.5">
-              <Mail className="h-4 w-4" />
-              {author.email_count.toLocaleString()} emails
-            </span>
-            {author.first_seen && author.last_seen && (
+
+        <div className="p-4 sm:p-6 flex items-start gap-4">
+          <div
+            className={cn(
+              "w-14 h-14 rounded border flex items-center justify-center flex-shrink-0",
+              "font-bold text-lg",
+              avatarColor
+            )}
+          >
+            {initials}
+          </div>
+          <div className="flex-1 min-w-0">
+            <h1 className="text-xl font-bold text-phosphor-amber glow-text mb-1 truncate">
+              {author.name}
+            </h1>
+            <div className="flex flex-wrap gap-4 text-2xs text-terminal-muted">
               <span className="flex items-center gap-1.5">
-                <Calendar className="h-4 w-4" />
-                Active {formatDateRange(author.first_seen, author.last_seen)}
+                <Mail className="h-3.5 w-3.5" />
+                <span className="text-phosphor-green">{author.email_count.toLocaleString()}</span>
+                {" "}emails
               </span>
+              {author.first_seen && author.last_seen && (
+                <span className="flex items-center gap-1.5">
+                  <Calendar className="h-3.5 w-3.5" />
+                  Active {formatDateRange(author.first_seen, author.last_seen)}
+                </span>
+              )}
+            </div>
+            {author.topic_tags && author.topic_tags.length > 0 && (
+              <div className="flex flex-wrap gap-1.5 mt-3">
+                {author.topic_tags.map((tag) => (
+                  <span key={tag} className="terminal-badge terminal-badge-amber">
+                    {tag}
+                  </span>
+                ))}
+              </div>
             )}
           </div>
         </div>
@@ -103,23 +148,33 @@ export default async function AuthorPage({ params }: PageProps) {
 
       {/* Threads */}
       {threads.length > 0 && (
-        <div className="mb-8">
-          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-100 mb-3 flex items-center gap-2">
-            <MessageSquare className="h-4 w-4" />
-            Threads ({threads.length})
-          </h2>
-          <div className="space-y-2">
+        <div className="terminal-panel mb-6">
+          <div className="terminal-header">
+            <div className="flex items-center gap-2">
+              <MessageSquare className="h-3.5 w-3.5 text-phosphor-amber" />
+              <span className="terminal-title">threads</span>
+              <span className="text-phosphor-green text-2xs">({threads.length})</span>
+            </div>
+          </div>
+          <div className="p-4 space-y-2">
             {threads.map((thread) => (
               <Link
                 key={thread.id}
                 href={`/threads/${encodeURIComponent(thread.root_message_id)}`}
-                className="block p-3 rounded-lg border border-surface-200 dark:border-surface-700 hover:border-brand-300 dark:hover:border-brand-700 transition-colors"
+                className={cn(
+                  "block p-3 rounded border border-terminal-border",
+                  "hover:border-phosphor-amber/40 hover:bg-retro-panelHover",
+                  "transition-all duration-200"
+                )}
               >
-                <p className="text-sm font-medium text-surface-900 dark:text-surface-100 mb-1">
+                <p className="text-sm font-medium text-phosphor-amber mb-1 leading-snug">
                   {thread.subject}
                 </p>
-                <div className="flex gap-3 text-xs text-surface-400">
-                  <span>{thread.message_count} messages</span>
+                <div className="flex flex-wrap gap-3 text-2xs text-terminal-muted">
+                  <span className="flex items-center gap-1">
+                    <MessageSquare className="h-3 w-3" />
+                    <span className="text-phosphor-green">{thread.message_count}</span> msgs
+                  </span>
                   <span>{formatDateRange(thread.date_start, thread.date_end)}</span>
                 </div>
               </Link>
@@ -129,13 +184,16 @@ export default async function AuthorPage({ params }: PageProps) {
       )}
 
       {/* Recent emails */}
-      {emails && emails.length > 0 && (
-        <div>
-          <h2 className="text-base font-semibold text-surface-900 dark:text-surface-100 mb-3 flex items-center gap-2">
-            <Mail className="h-4 w-4" />
-            Recent Emails ({emails.length})
-          </h2>
-          <div className="space-y-2">
+      {emails.length > 0 && (
+        <div className="terminal-panel">
+          <div className="terminal-header">
+            <div className="flex items-center gap-2">
+              <Mail className="h-3.5 w-3.5 text-phosphor-amber" />
+              <span className="terminal-title">recent emails</span>
+              <span className="text-phosphor-green text-2xs">({emails.length})</span>
+            </div>
+          </div>
+          <div className="p-4 space-y-2">
             {(emails as EmailRow[]).map((email) => {
               const excerpt = email.body_new_content
                 ? truncate(email.body_new_content.replace(/\n+/g, " ").trim(), 200)
@@ -144,26 +202,30 @@ export default async function AuthorPage({ params }: PageProps) {
               return (
                 <div
                   key={email.message_id}
-                  className="p-3 rounded-lg border border-surface-200 dark:border-surface-700"
+                  className={cn(
+                    "p-3 rounded border border-terminal-border",
+                    "hover:border-phosphor-amber/20 hover:bg-retro-panelHover",
+                    "transition-all duration-200"
+                  )}
                 >
                   <div className="flex items-start justify-between gap-4 mb-1">
-                    <p className="text-sm font-medium text-surface-900 dark:text-surface-100 truncate">
+                    <p className="text-sm font-medium text-phosphor-amber truncate leading-snug">
                       {email.subject}
                     </p>
-                    <span className="text-xs text-surface-400 flex-shrink-0">
+                    <span className="text-2xs text-terminal-muted flex-shrink-0">
                       {formatDateShort(email.date)}
                     </span>
                   </div>
                   {excerpt && (
-                    <p className="text-xs text-surface-500 dark:text-surface-400 mb-2">
+                    <p className="text-2xs text-terminal-muted mb-2 leading-relaxed line-clamp-2">
                       {excerpt}
                     </p>
                   )}
-                  <div className="flex gap-3">
+                  <div className="flex gap-3 pt-2 border-t border-terminal-border">
                     {email.thread_root_id && (
                       <Link
                         href={`/threads/${encodeURIComponent(email.thread_root_id)}`}
-                        className="text-xs text-brand-500 hover:text-brand-600"
+                        className="text-2xs text-phosphor-amber hover:text-phosphor-amberBright font-medium transition-colors"
                       >
                         View thread
                       </Link>
@@ -173,7 +235,7 @@ export default async function AuthorPage({ params }: PageProps) {
                         href={email.source_url}
                         target="_blank"
                         rel="noopener noreferrer"
-                        className="flex items-center gap-0.5 text-xs text-surface-400 hover:text-surface-600"
+                        className="flex items-center gap-0.5 text-2xs text-terminal-muted hover:text-phosphor-cyan transition-colors"
                       >
                         <ExternalLink className="h-3 w-3" />
                         Original

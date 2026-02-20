@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { Search, Zap } from "lucide-react";
+import { Search, Zap, AlertCircle } from "lucide-react";
 import { cn, formatDateShort, truncate } from "@/lib/utils";
 import Link from "next/link";
 
@@ -24,8 +24,10 @@ export default function SearchPage() {
   const [mode, setMode] = useState<SearchMode>("keyword");
   const [query, setQuery] = useState("");
   const [results, setResults] = useState<SearchResult[]>([]);
+  const [total, setTotal] = useState(0);
   const [loading, setLoading] = useState(false);
   const [searched, setSearched] = useState(false);
+  const [error, setError] = useState<string | null>(null);
   const [dateFrom, setDateFrom] = useState("");
   const [dateTo, setDateTo] = useState("");
   const [author, setAuthor] = useState("");
@@ -34,19 +36,19 @@ export default function SearchPage() {
     if (!query.trim()) return;
     setLoading(true);
     setSearched(true);
+    setError(null);
 
     try {
-      let data: { results: SearchResult[] };
+      let res: Response;
 
       if (mode === "keyword") {
         const params = new URLSearchParams({ q: query });
         if (dateFrom) params.set("date_from", dateFrom);
         if (dateTo) params.set("date_to", dateTo);
         if (author) params.set("author", author);
-        const res = await fetch(`/api/search/keyword?${params}`);
-        data = await res.json();
+        res = await fetch(`/api/search/keyword?${params}`);
       } else {
-        const res = await fetch("/api/search/semantic", {
+        res = await fetch("/api/search/semantic", {
           method: "POST",
           headers: { "Content-Type": "application/json" },
           body: JSON.stringify({
@@ -58,19 +60,29 @@ export default function SearchPage() {
             },
           }),
         });
-        data = await res.json();
       }
 
+      if (!res.ok) {
+        const errData = await res.json().catch(() => ({}));
+        setError(errData.error ?? `Search failed (${res.status}). Please try again.`);
+        setResults([]);
+        return;
+      }
+
+      const data = await res.json();
       setResults(data.results ?? []);
+      setTotal(data.total ?? data.results?.length ?? 0);
     } catch (err) {
       console.error("Search failed:", err);
+      setError("Network error — please check your connection and try again.");
+      setResults([]);
     } finally {
       setLoading(false);
     }
   };
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="w-full px-4 py-6">
       <div className="terminal-panel mb-6">
         <div className="terminal-header">
           <div className="flex items-center gap-1.5">
@@ -80,7 +92,7 @@ export default function SearchPage() {
           </div>
           <span className="terminal-title ml-2">search.exe</span>
         </div>
-        
+
         <div className="p-4 sm:p-6">
           <h1 className="text-lg font-bold text-phosphor-amber glow-text mb-4">
             Search Archive
@@ -92,9 +104,9 @@ export default function SearchPage() {
                 key={m}
                 onClick={() => setMode(m)}
                 className={cn(
-                  "flex items-center gap-1.5 px-4 py-2 rounded text-2xs uppercase tracking-wider transition-all touch-target",
+                  "flex items-center gap-1.5 px-4 py-1.5 rounded text-2xs uppercase tracking-wider transition-all",
                   mode === m
-                    ? "bg-phosphor-amber/10 text-phosphor-amber border-phosphor-amber"
+                    ? "bg-phosphor-amber/10 text-phosphor-amber"
                     : "text-terminal-muted hover:text-terminal-text"
                 )}
               >
@@ -174,7 +186,17 @@ export default function SearchPage() {
         </div>
       )}
 
-      {!loading && searched && results.length === 0 && (
+      {!loading && error && (
+        <div className="terminal-panel p-4 flex items-start gap-3 border-red-500/30">
+          <AlertCircle className="h-4 w-4 text-red-400 flex-shrink-0 mt-0.5" />
+          <div>
+            <p className="text-sm font-bold text-red-400 mb-0.5">Search Error</p>
+            <p className="text-2xs text-terminal-muted">{error}</p>
+          </div>
+        </div>
+      )}
+
+      {!loading && !error && searched && results.length === 0 && (
         <div className="terminal-card text-center py-12">
           <Search className="h-8 w-8 mx-auto mb-3 text-terminal-muted" />
           <p className="font-bold text-phosphor-amber mb-2">No results found</p>
@@ -185,7 +207,11 @@ export default function SearchPage() {
       {!loading && results.length > 0 && (
         <div>
           <p className="text-2xs text-terminal-muted mb-3">
-            <span className="text-phosphor-green">{results.length}</span> result{results.length !== 1 ? "s" : ""}
+            <span className="text-phosphor-green">{total.toLocaleString()}</span>{" "}
+            result{total !== 1 ? "s" : ""}
+            {mode === "semantic" && (
+              <span className="ml-2 text-phosphor-cyan">(ranked by similarity)</span>
+            )}
           </p>
           <div className="space-y-3">
             {results.map((result) => {
@@ -197,7 +223,7 @@ export default function SearchPage() {
                 <div key={result.message_id} className="terminal-card">
                   <div className="flex items-start justify-between gap-4">
                     <div className="flex-1 min-w-0">
-                      <h3 className="font-bold text-sm text-phosphor-amber mb-1">
+                      <h3 className="font-bold text-sm text-phosphor-amber mb-1 leading-snug">
                         {result.subject}
                       </h3>
                       <div className="flex flex-wrap gap-3 text-2xs text-terminal-muted mb-2">
@@ -205,7 +231,7 @@ export default function SearchPage() {
                         <span>{formatDateShort(result.date)}</span>
                       </div>
                       {excerpt && (
-                        <p className="text-2xs text-terminal-muted leading-relaxed">
+                        <p className="text-2xs text-terminal-muted leading-relaxed line-clamp-3">
                           {excerpt}
                         </p>
                       )}

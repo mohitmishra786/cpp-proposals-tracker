@@ -4,6 +4,7 @@ import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { Thread } from "@/lib/types";
+import { cacheGet, cacheSet } from "@/lib/ratelimit";
 
 const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -11,6 +12,8 @@ const querySchema = z.object({
   sort: z.enum(["recent", "active", "popular"]).optional(),
   search: z.string().optional(),
 });
+
+const CACHE_TTL = 86400; // 24 hours
 
 export async function GET(req: NextRequest) {
   try {
@@ -31,18 +34,26 @@ export async function GET(req: NextRequest) {
 
     const { page, per_page, sort = "recent", search } = parsed.data;
     const offset = (page - 1) * per_page;
+
+    // Check Redis cache first (skip cache when search filter is present to keep results fresh)
+    if (!search) {
+      const cacheKey = `threads:${sort}:${page}:${per_page}`;
+      const cached = await cacheGet<{ threads: Thread[]; total: number }>(cacheKey);
+      if (cached) {
+        return NextResponse.json({ ...cached, page, per_page });
+      }
+    }
+
     const supabase = getSupabaseServiceClient();
 
     let query = supabase
       .from("threads")
       .select("*", { count: "exact" });
 
-    // Keyword filter
     if (search) {
       query = query.ilike("subject", `%${search}%`);
     }
 
-    // Sorting
     if (sort === "recent") {
       query = query.order("date_end", { ascending: false, nullsFirst: false });
     } else if (sort === "active") {
@@ -60,19 +71,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    return NextResponse.json(
-      {
-        threads: (data ?? []) as Thread[],
-        total: count ?? 0,
-        page,
-        per_page,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=60, stale-while-revalidate=300",
-        },
-      }
-    );
+    const threads = (data ?? []) as Thread[];
+    const total = count ?? 0;
+
+    // Cache unsearched pages for 24 hours
+    if (!search) {
+      const cacheKey = `threads:${sort}:${page}:${per_page}`;
+      await cacheSet(cacheKey, { threads, total }, CACHE_TTL);
+    }
+
+    return NextResponse.json({ threads, total, page, per_page });
   } catch (err) {
     console.error("[API /threads] Unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

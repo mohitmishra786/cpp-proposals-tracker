@@ -40,8 +40,8 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={jetbrainsMono.variable}>
-      <body className="bg-terminal-bg text-terminal-text font-mono antialiased">
+    <html lang="en" className={jetbrainsMono.variable} suppressHydrationWarning>
+      <body suppressHydrationWarning className="bg-terminal-bg text-terminal-text font-mono antialiased">
         <div className="scanline-overlay" />
         <div className="flex h-screen overflow-hidden crt-effect">
           <Sidebar />

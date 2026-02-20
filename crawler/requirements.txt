@@ -6,6 +6,7 @@ tenacity>=8.2.0
 tqdm>=4.66.0
 pydantic>=2.5.0
 aiofiles>=23.2.0
+python-dotenv>=1.0.0
 # Pin to <2.19 to avoid storage3's pyiceberg dependency (fails to build on Python 3.14)
 supabase==2.18.1
 # Primary LLM — Groq via OpenAI-compatible SDK

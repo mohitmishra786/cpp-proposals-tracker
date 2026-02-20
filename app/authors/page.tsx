@@ -39,7 +39,7 @@ export default function AuthorsPage() {
   }, [debouncedSearch]);
 
   return (
-    <div className="max-w-5xl mx-auto px-4 py-6">
+    <div className="w-full px-4 py-6">
       <div className="terminal-panel mb-6">
         <div className="terminal-header">
           <div className="flex items-center gap-1.5">
@@ -49,7 +49,7 @@ export default function AuthorsPage() {
           </div>
           <span className="terminal-title ml-2">authors.exe</span>
         </div>
-        
+
         <div className="p-4 flex flex-col sm:flex-row sm:items-center justify-between gap-4">
           <div>
             <h1 className="text-lg font-bold text-phosphor-amber glow-text">

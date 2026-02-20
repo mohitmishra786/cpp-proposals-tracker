@@ -10,6 +10,8 @@ import {
   Github,
   ExternalLink,
   Sparkles,
+  Heart,
+  Coffee,
 } from "lucide-react";
 import { getSupabaseServiceClient } from "@/lib/supabase";
 import { formatDateShort } from "@/lib/utils";
@@ -92,7 +94,7 @@ export default async function StatsPage() {
   ];
 
   return (
-    <div className="max-w-3xl mx-auto px-4 py-6">
+    <div className="w-full px-4 py-6">
       <div className="terminal-panel mb-6">
         <div className="terminal-header">
           <div className="flex items-center gap-1.5">
@@ -102,10 +104,10 @@ export default async function StatsPage() {
           </div>
           <span className="terminal-title ml-2">stats.exe</span>
         </div>
-        
+
         <div className="p-4 sm:p-6">
           <h1 className="text-lg font-bold text-phosphor-amber glow-text mb-2">
-            Stats & About
+            Stats &amp; About
           </h1>
           <p className="text-sm text-terminal-muted mb-6">
             C++ Proposals Explorer is an open-source tool for exploring the{" "}
@@ -120,12 +122,9 @@ export default async function StatsPage() {
             archive using AI-powered search and synthesis.
           </p>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
             {statItems.map(({ icon: Icon, label, value, color, bg }) => (
-              <div
-                key={label}
-                className="terminal-card"
-              >
+              <div key={label} className="terminal-card">
                 <div className={`inline-flex p-2 rounded border border-terminal-border ${bg} mb-3`}>
                   <Icon className={`h-4 w-4 ${color}`} />
                 </div>
@@ -143,7 +142,7 @@ export default async function StatsPage() {
         <div className="terminal-header">
           <span className="terminal-title">how_it_works</span>
         </div>
-        
+
         <div className="p-4 sm:p-6 space-y-4">
           {[
             {
@@ -167,12 +166,8 @@ export default async function StatsPage() {
                 <Icon className="h-4 w-4 text-phosphor-amber" />
               </div>
               <div>
-                <p className="font-bold text-sm text-phosphor-amber mb-0.5">
-                  {title}
-                </p>
-                <p className="text-2xs text-terminal-muted leading-relaxed">
-                  {desc}
-                </p>
+                <p className="font-bold text-sm text-phosphor-amber mb-0.5">{title}</p>
+                <p className="text-2xs text-terminal-muted leading-relaxed">{desc}</p>
               </div>
             </div>
           ))}
@@ -183,25 +178,16 @@ export default async function StatsPage() {
         <div className="terminal-header">
           <span className="terminal-title">tech_stack</span>
         </div>
-        
+
         <div className="p-4 sm:p-6">
           <div className="flex flex-wrap gap-2">
             {[
-              "Next.js 14",
-              "TypeScript",
-              "Tailwind CSS",
-              "Supabase + pgvector",
-              "Upstash Redis",
-              "HuggingFace Embeddings",
-              "Groq LLaMA",
-              "Python + httpx",
-              "Vercel",
-              "GitHub Actions",
+              "Next.js 14", "TypeScript", "Tailwind CSS",
+              "Supabase + pgvector", "Upstash Redis",
+              "HuggingFace Embeddings", "Groq LLaMA",
+              "Python + httpx", "Vercel", "GitHub Actions",
             ].map((tech) => (
-              <span
-                key={tech}
-                className="terminal-badge terminal-badge-amber"
-              >
+              <span key={tech} className="terminal-badge terminal-badge-amber">
                 {tech}
               </span>
             ))}
@@ -209,9 +195,44 @@ export default async function StatsPage() {
         </div>
       </div>
 
+      {/* Support section */}
+      <div className="terminal-panel mb-6">
+        <div className="terminal-header">
+          <div className="flex items-center gap-2">
+            <Heart className="h-3.5 w-3.5 text-red-400" />
+            <span className="terminal-title">support_this_project</span>
+          </div>
+        </div>
+        <div className="p-4 sm:p-6">
+          <p className="text-sm text-terminal-muted mb-4">
+            If you find this project useful, consider supporting its development and hosting costs.
+          </p>
+          <div className="flex flex-wrap gap-3">
+            <a
+              href="https://buymeacoffee.com/mohitmishra7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="terminal-btn terminal-btn-amber inline-flex items-center gap-2"
+            >
+              <Coffee className="h-4 w-4 text-yellow-500" />
+              Buy Me a Coffee
+            </a>
+            <a
+              href="https://github.com/sponsors/mohitmishra786"
+              target="_blank"
+              rel="noopener noreferrer"
+              className="terminal-btn inline-flex items-center gap-2"
+            >
+              <Github className="h-4 w-4" />
+              GitHub Sponsors
+            </a>
+          </div>
+        </div>
+      </div>
+
       <div className="flex flex-wrap gap-3">
         <a
-          href="https://github.com/your-org/cpp-proposals-explorer"
+          href="https://github.com/mohitmishra786/cpp-proposals-tracker"
           target="_blank"
           rel="noopener noreferrer"
           className="terminal-btn terminal-btn-primary"

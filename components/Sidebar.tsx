@@ -11,6 +11,9 @@ import {
   Menu,
   X,
   Terminal,
+  Heart,
+  Coffee,
+  Github,
 } from "lucide-react";
 import { useState } from "react";
 import { cn } from "@/lib/utils";
@@ -30,6 +33,7 @@ interface SidebarProps {
 export default function Sidebar({ className }: SidebarProps) {
   const pathname = usePathname();
   const [mobileOpen, setMobileOpen] = useState(false);
+  const [supportOpen, setSupportOpen] = useState(false);
 
   const navContent = (
     <nav className="flex-1 px-3 py-4 space-y-1">
@@ -54,6 +58,51 @@ export default function Sidebar({ className }: SidebarProps) {
           </Link>
         );
       })}
+
+      {/* Support toggle */}
+      <div>
+        <button
+          onClick={() => setSupportOpen((v) => !v)}
+          className={cn(
+            "nav-link touch-target w-full text-left",
+            supportOpen && "text-phosphor-amber"
+          )}
+        >
+          <Heart className="h-4 w-4 flex-shrink-0 text-red-400" />
+          <span className="text-xs uppercase tracking-wider flex-1">Support</span>
+        </button>
+
+        {supportOpen && (
+          <div className="ml-7 mt-1 space-y-1 animate-in fade-in slide-in-from-top-1 duration-150">
+            <a
+              href="https://buymeacoffee.com/mohitmishra7"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 rounded text-2xs",
+                "text-terminal-muted hover:text-phosphor-amber",
+                "hover:bg-terminal-hover transition-colors duration-150"
+              )}
+            >
+              <Coffee className="h-3 w-3 text-yellow-500 flex-shrink-0" />
+              Buy Me a Coffee
+            </a>
+            <a
+              href="https://github.com/sponsors/mohitmishra786"
+              target="_blank"
+              rel="noopener noreferrer"
+              className={cn(
+                "flex items-center gap-2 px-2 py-1.5 rounded text-2xs",
+                "text-terminal-muted hover:text-phosphor-amber",
+                "hover:bg-terminal-hover transition-colors duration-150"
+              )}
+            >
+              <Github className="h-3 w-3 text-terminal-text flex-shrink-0" />
+              GitHub Sponsors
+            </a>
+          </div>
+        )}
+      </div>
     </nav>
   );
 

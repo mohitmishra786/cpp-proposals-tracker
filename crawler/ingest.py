@@ -15,7 +15,7 @@ import asyncio
 import json
 import re
 import time
-from datetime import datetime
+from datetime import datetime, timezone
 from typing import Optional
 
 # OpenAI client (used for embeddings when EMBEDDING_PROVIDER=openai,
@@ -216,7 +216,7 @@ def email_to_db_row(email: dict) -> dict:
 
 async def upsert_emails(emails: list[dict], supabase: SupabaseClient) -> int:
     """Upsert emails into Supabase in batches. Returns count of upserted rows."""
-    UPSERT_BATCH = 50
+    UPSERT_BATCH = 500
     total_upserted = 0
 
     for i in range(0, len(emails), UPSERT_BATCH):
@@ -253,10 +253,14 @@ async def upsert_authors(emails: list[dict], supabase: SupabaseClient) -> None:
         if isinstance(date_str, str):
             try:
                 date = datetime.fromisoformat(date_str)
+                if date.tzinfo is None:
+                    date = date.replace(tzinfo=timezone.utc)
             except Exception:
                 date = None
         elif isinstance(date_str, datetime):
             date = date_str
+            if date.tzinfo is None:
+                date = date.replace(tzinfo=timezone.utc)
         else:
             date = None
 

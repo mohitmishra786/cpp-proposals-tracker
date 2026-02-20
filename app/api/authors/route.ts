@@ -3,6 +3,7 @@ export const dynamic = "force-dynamic";
 import { NextRequest, NextResponse } from "next/server";
 import { z } from "zod";
 import { getSupabaseServiceClient } from "@/lib/supabase";
+import { cacheGet, cacheSet } from "@/lib/ratelimit";
 
 const querySchema = z.object({
   page: z.coerce.number().int().positive().default(1),
@@ -10,6 +11,8 @@ const querySchema = z.object({
   sort: z.enum(["email_count", "recent"]).optional(),
   search: z.string().optional(),
 });
+
+const CACHE_TTL = 86400; // 24 hours
 
 export async function GET(req: NextRequest) {
   try {
@@ -30,6 +33,16 @@ export async function GET(req: NextRequest) {
 
     const { page, per_page, sort = "email_count", search } = parsed.data;
     const offset = (page - 1) * per_page;
+
+    // Check Redis cache (skip cache when search is active)
+    if (!search) {
+      const cacheKey = `authors:${sort}:${page}:${per_page}`;
+      const cached = await cacheGet<{ authors: unknown[]; total: number }>(cacheKey);
+      if (cached) {
+        return NextResponse.json({ ...cached, page, per_page });
+      }
+    }
+
     const supabase = getSupabaseServiceClient();
 
     let query = supabase
@@ -55,19 +68,16 @@ export async function GET(req: NextRequest) {
       return NextResponse.json({ error: "Database error" }, { status: 500 });
     }
 
-    return NextResponse.json(
-      {
-        authors: data ?? [],
-        total: count ?? 0,
-        page,
-        per_page,
-      },
-      {
-        headers: {
-          "Cache-Control": "public, s-maxage=300, stale-while-revalidate=600",
-        },
-      }
-    );
+    const authors = data ?? [];
+    const total = count ?? 0;
+
+    // Cache unsearched result sets for 24 hours
+    if (!search) {
+      const cacheKey = `authors:${sort}:${page}:${per_page}`;
+      await cacheSet(cacheKey, { authors, total }, CACHE_TTL);
+    }
+
+    return NextResponse.json({ authors, total, page, per_page });
   } catch (err) {
     console.error("[API /authors] Unexpected error:", err);
     return NextResponse.json({ error: "Internal server error" }, { status: 500 });

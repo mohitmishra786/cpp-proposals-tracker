@@ -1,4 +1,10 @@
 import os
+from pathlib import Path
+
+from dotenv import load_dotenv
+
+_env_file = Path(__file__).parent.parent / ".env"
+load_dotenv(_env_file)
 
 BASE_URL = "https://lists.isocpp.org/std-proposals"
 CRAWL_DELAY_SECONDS = 0        # no delay by default
@@ -14,8 +20,8 @@ USER_AGENT = (
     "CppProposalsExplorer/1.0 "
     "(open source archive tool; https://github.com/your-org/cpp-proposals-explorer)"
 )
-START_YEAR = 2025
-START_MONTH = 1
+START_YEAR = 2019
+START_MONTH = 4
 
 # Supabase
 SUPABASE_URL = os.environ.get("SUPABASE_URL", "")
@@ -51,7 +57,7 @@ EMBEDDING_DIMENSIONS = (
     else OPENAI_EMBEDDING_DIMENSIONS
 )
 
-EMBEDDING_BATCH_SIZE = 100
+EMBEDDING_BATCH_SIZE = 250
 MAX_EMBEDDING_TOKENS = 8000   # used only for OpenAI token-truncation
 
 # ---- LLM configuration (summarization) ----------------------

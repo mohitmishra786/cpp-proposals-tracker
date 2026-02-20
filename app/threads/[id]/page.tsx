@@ -62,7 +62,7 @@ export default async function ThreadPage({ params }: PageProps) {
   const tree = buildThreadTree(emails);
 
   return (
-    <div className="max-w-4xl mx-auto px-4 py-6">
+    <div className="w-full px-4 py-6">
       {thread && (
         <div className="terminal-panel mb-6">
           <div className="terminal-header">
