@@ -403,6 +403,7 @@ def reconstruct_threads(emails: list[dict]) -> list[dict]:
 async def get_all_month_periods(
     client: httpx.AsyncClient,
     from_period: Optional[str] = None,
+    only_period: Optional[str] = None,
 ) -> list[tuple[str, str]]:
     """
     Returns list of (month_period, index_url) tuples.
@@ -422,6 +423,9 @@ async def get_all_month_periods(
             if year < START_YEAR or (year == START_YEAR and month < START_MONTH):
                 continue
             period = f"{year}/{month:02d}"
+            # If only_period is set, only include that exact period
+            if only_period and period != only_period:
+                continue
             if from_period and period < from_period:
                 continue
             if period in seen:

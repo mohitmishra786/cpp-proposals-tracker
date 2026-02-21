@@ -43,8 +43,8 @@ _state_lock = asyncio.Lock()
 # Crawl sub-commands
 # ---------------------------------------------------------------------------
 
-async def cmd_scrape(from_period: Optional[str] = None) -> None:
-    """Crawl all HTML pages in parallel, optionally starting from a given period."""
+async def cmd_scrape(from_period: Optional[str] = None, only_period: Optional[str] = None) -> None:
+    """Crawl all HTML pages in parallel, optionally starting from a given period or only a single period."""
     start = time.time()
     total_emails = 0
     errors = 0
@@ -61,7 +61,7 @@ async def cmd_scrape(from_period: Optional[str] = None) -> None:
             logger.error("robots_txt_disallow_crawl_aborted")
             return
 
-        periods = await get_all_month_periods(client, from_period=from_period)
+        periods = await get_all_month_periods(client, from_period=from_period, only_period=only_period)
         state = load_crawl_state()
         completed = set(state.get("completed_months", []))
 
@@ -177,6 +177,13 @@ def build_parser() -> argparse.ArgumentParser:
         default=None,
         help="Start crawling from this month (e.g. 2024/01)",
     )
+    scrape_parser.add_argument(
+        "--only",
+        dest="only_period",
+        metavar="YYYY/MM",
+        default=None,
+        help="Crawl only this specific month (e.g. 2026/02)",
+    )
 
     # incremental
     subparsers.add_parser("incremental", help="Only fetch new emails since last crawl")
@@ -200,7 +207,7 @@ def main() -> None:
     args = parser.parse_args()
 
     if args.command == "scrape":
-        asyncio.run(cmd_scrape(from_period=args.from_period))
+        asyncio.run(cmd_scrape(from_period=args.from_period, only_period=args.only_period))
     elif args.command == "incremental":
         asyncio.run(cmd_incremental())
     elif args.command == "mbox":

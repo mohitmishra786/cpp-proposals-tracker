@@ -12,9 +12,17 @@ on:
           - incremental
           - scrape
       from_period:
-        description: 'Start from period (YYYY/MM) — only used with scrape mode'
+        description: 'Start from period (YYYY/MM) — used with scrape mode'
         required: false
         default: ''
+      scrape_mode:
+        description: 'How to interpret from_period (only used with scrape mode)'
+        required: false
+        default: 'from'
+        type: choice
+        options:
+          - from
+          - only
       summarize:
         description: 'Generate AI thread summaries after ingestion'
         required: false
@@ -44,7 +52,11 @@ jobs:
       - name: Run crawler
         run: |
           if [ "${{ inputs.mode }}" = "scrape" ] && [ -n "${{ inputs.from_period }}" ]; then
-            python crawler/main.py scrape --from "${{ inputs.from_period }}"
+            if [ "${{ inputs.scrape_mode }}" = "only" ]; then
+              python crawler/main.py scrape --only "${{ inputs.from_period }}"
+            else
+              python crawler/main.py scrape --from "${{ inputs.from_period }}"
+            fi
           elif [ "${{ inputs.mode }}" = "scrape" ]; then
             python crawler/main.py scrape
           else
