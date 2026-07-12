@@ -46,7 +46,7 @@ from config import (
     SUPABASE_URL,
 )
 from logger import setup_logger
-from storage import read_all_emails
+from storage import load_ingest_state, read_all_emails, save_ingest_state
 
 logger = setup_logger()
 
@@ -488,34 +488,70 @@ async def run(batch_size: int, summarize: bool, provider: str) -> None:
     start = time.time()
 
     logger.info("loading_emails", path=OUTPUT_JSON_PATH)
-    emails = read_all_emails()
-    logger.info("emails_loaded", count=len(emails))
+    all_emails = read_all_emails()
+    logger.info("emails_loaded", count=len(all_emails))
 
-    if not emails:
+    if not all_emails:
         logger.error("no_emails_to_ingest")
         return
 
-    # Embed
-    emails = await embed_emails(emails, batch_size=batch_size, provider=provider)
+    # Load ingest state to determine which months already processed
+    ingest_state = load_ingest_state()
+    ingested = set(ingest_state.get("ingested_months", []))
+
+    now = datetime.now(tz=timezone.utc)
+    current_month = f"{now.year}/{now.month:02d}"
+
+    # Only process un-ingested months + current month (new emails may appear daily)
+    to_process = [
+        e for e in all_emails
+        if e.get("month_period") not in ingested or e.get("month_period") == current_month
+    ]
+
+    skipped = len(all_emails) - len(to_process)
+    if skipped:
+        logger.info("skipping_already_ingested", count=skipped)
+
+    if not to_process:
+        logger.info("no_new_emails_to_ingest")
+        supabase = get_supabase()
+        await rebuild_thread_stats(supabase, all_emails)
+        if summarize:
+            await generate_thread_summaries(all_emails, supabase)
+        return
+
+    # Embed only new emails
+    to_process = await embed_emails(to_process, batch_size=batch_size, provider=provider)
 
     # Upsert to Supabase
     supabase = get_supabase()
-    upserted = await upsert_emails(emails, supabase)
+    upserted = await upsert_emails(to_process, supabase)
     logger.info("emails_upserted", count=upserted)
 
-    # Authors
-    await upsert_authors(emails, supabase)
-
-    # Thread stats
-    await rebuild_thread_stats(supabase, emails)
+    # Authors and thread stats use all emails for correct stats
+    await upsert_authors(all_emails, supabase)
+    await rebuild_thread_stats(supabase, all_emails)
 
     # Optional: thread summaries
     if summarize:
-        await generate_thread_summaries(emails, supabase)
+        await generate_thread_summaries(all_emails, supabase)
+
+    # Mark newly ingested months (current month excluded — always re-processed)
+    new_months = set()
+    for e in to_process:
+        mp = e.get("month_period")
+        if mp and mp != current_month:
+            new_months.add(mp)
+    ingested.update(new_months)
+    save_ingest_state({
+        "ingested_months": sorted(ingested),
+        "last_ingest": datetime.now(tz=timezone.utc).isoformat(),
+    })
 
     logger.info(
         "ingestion_complete",
-        total_emails=len(emails),
+        total_emails=len(all_emails),
+        new_emails=len(to_process),
         duration_seconds=round(time.time() - start, 1),
     )
 

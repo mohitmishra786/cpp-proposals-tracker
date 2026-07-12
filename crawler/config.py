@@ -16,6 +16,7 @@ RETRY_DELAY_BASE = 0.5         # base delay for retries, doubles each time
 OUTPUT_DIR = "output"
 OUTPUT_JSON_PATH = os.path.join(OUTPUT_DIR, "emails.jsonl")
 STATE_FILE_PATH = os.path.join(OUTPUT_DIR, "crawl_state.json")
+INGEST_STATE_PATH = os.path.join(OUTPUT_DIR, "ingest_state.json")
 USER_AGENT = (
     "CppProposalsExplorer/1.0 "
     "(open source archive tool; https://github.com/your-org/cpp-proposals-explorer)"

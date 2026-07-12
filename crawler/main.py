@@ -113,13 +113,25 @@ async def cmd_scrape(from_period: Optional[str] = None, only_period: Optional[st
 
 
 async def cmd_incremental() -> None:
-    """Only fetch months newer than the last completed crawl."""
-    state = load_crawl_state()
-    completed = state.get("completed_months", [])
-    from_period: Optional[str] = None
+    """Only fetch months newer than the last completed crawl.
 
+    Always re-crawls the current month to pick up same-day emails.
+    """
+    state = load_crawl_state()
+    completed = set(state.get("completed_months", []))
+
+    now = datetime.now(tz=timezone.utc)
+    current_month = f"{now.year}/{now.month:02d}"
+
+    # Always re-crawl the current month so new same-day emails are picked up
+    if current_month in completed:
+        completed.remove(current_month)
+        state["completed_months"] = list(completed)
+        save_crawl_state(state)
+        logger.info("re_crawl_current_month", month=current_month)
+
+    from_period: Optional[str] = None
     if completed:
-        # Start from the latest completed month (re-crawl it for new emails)
         latest = sorted(completed)[-1]
         from_period = latest
         logger.info("incremental_crawl_from", period=from_period)

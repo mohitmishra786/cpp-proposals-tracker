@@ -3,7 +3,7 @@ import os
 import aiofiles
 from datetime import datetime
 from models import RawEmail
-from config import OUTPUT_DIR, OUTPUT_JSON_PATH, STATE_FILE_PATH
+from config import INGEST_STATE_PATH, OUTPUT_DIR, OUTPUT_JSON_PATH, STATE_FILE_PATH
 from logger import setup_logger
 
 logger = setup_logger()
@@ -61,4 +61,19 @@ def save_crawl_state(state: dict) -> None:
     """Persist the crawl state."""
     ensure_output_dir()
     with open(STATE_FILE_PATH, "w", encoding="utf-8") as f:
+        json.dump(state, f, indent=2, default=str)
+
+
+def load_ingest_state() -> dict:
+    """Load the ingest state (which months have been fully embedded + upserted)."""
+    if not os.path.exists(INGEST_STATE_PATH):
+        return {"ingested_months": [], "last_ingest": None}
+    with open(INGEST_STATE_PATH, "r", encoding="utf-8") as f:
+        return json.load(f)
+
+
+def save_ingest_state(state: dict) -> None:
+    """Persist the ingest state."""
+    ensure_output_dir()
+    with open(INGEST_STATE_PATH, "w", encoding="utf-8") as f:
         json.dump(state, f, indent=2, default=str)
